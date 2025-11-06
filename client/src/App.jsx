@@ -418,12 +418,16 @@ export default function App() {
                     const salePrice = item?.SalesDetails?.UnitPrice ?? ''
                     const costPrice = item?.PurchaseDetails?.UnitPrice ?? ''
                     const tracked = item?.IsTrackedAsInventory
-                    // Get field permissions (default all true for admins or if not set)
-                    const perms = user?.fieldPermissions || {
+                    // Get field permissions (admins get all true, regular users get all false until loaded)
+                    const perms = user?.fieldPermissions || (user?.isAdmin ? {
                       code: true, name: true, description: true,
                       salePrice: true, salesAccount: true, salesTax: true,
                       costPrice: true, purchaseAccount: true, purchaseTax: true, status: true
-                    }
+                    } : {
+                      code: false, name: false, description: false,
+                      salePrice: false, salesAccount: false, salesTax: false,
+                      costPrice: false, purchaseAccount: false, purchaseTax: false, status: false
+                    })
                     return (
                       <tr key={item.ItemID} className={changed[item.ItemID]?'changes':''}>
                         <td><input type="text" value={item.Code||''} onChange={e=>setField(item,'Code',e.target.value)} disabled={!perms.code} /></td>
