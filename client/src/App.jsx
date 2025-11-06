@@ -352,11 +352,11 @@ export default function App() {
               <span className="status">Connected: {tenantName}</span>
             )}
 
-            <span className="small">{user.email}</span>
+            <span className="user-email">{user.email}</span>
             <button onClick={handleLogout}>Logout</button>
 
             {connected && (
-              <button className="primary" onClick={saveChanges} disabled={loading || changedCount===0}>
+              <button className="save-btn-header" onClick={saveChanges} disabled={loading || changedCount===0}>
                 Save changes {changedCount>0 ? `(${changedCount})` : ''}
               </button>
             )}
