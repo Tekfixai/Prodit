@@ -451,7 +451,9 @@ export default function App() {
                   <tr>
                     <td colSpan="10">
                       <div className="table-footer">
-                        <button className="save-btn" onClick={saveChanges} disabled={loading || changedCount===0}>Save changes</button>
+                        <button className="save-btn" onClick={saveChanges} disabled={loading || changedCount===0}>
+                          Save changes {changedCount>0 ? `(${changedCount})` : ''}
+                        </button>
                         <span className="small">{items.length} rows loaded • {changedCount} modified</span>
                       </div>
                     </td>
