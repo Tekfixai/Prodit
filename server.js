@@ -367,15 +367,25 @@ app.get('/api/items/search', requireAuth, async (req, res) => {
     return res.json({ Items: [], Note: 'Type at least 2 characters to search' });
   }
 
+  // Calculate which Xero page to request and offset within that page
+  // Xero returns 100 items per page by default
+  const xeroPageSize = 100;
+  const startIndex = (page - 1) * limit; // 0-indexed start position
+  const xeroPage = Math.floor(startIndex / xeroPageSize) + 1; // Which Xero page to request
+  const offsetInXeroPage = startIndex % xeroPageSize; // Offset within that Xero page
+
   const params = new URLSearchParams();
-  params.set('page', String(page));
+  params.set('page', String(xeroPage));
   params.set('order', 'Name');
   params.set('where', buildWhere(q));
 
   try {
     const data = await xeroRequest(req.userId, req.isAdmin, 'get', `/Items?${params.toString()}`);
     const list = Array.isArray(data?.Items) ? data.Items : [];
-    const Items = list.slice(0, limit);
+
+    // Slice the correct portion based on our pagination
+    const Items = list.slice(offsetInXeroPage, offsetInXeroPage + limit);
+
     res.json({ Items, page, pageSize: limit, returned: Items.length });
   } catch (error) {
     const detail = error.response?.data || error.message;
