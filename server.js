@@ -113,12 +113,41 @@ app.post('/api/auth/logout', (req, res) => {
   });
 });
 
-app.get('/api/auth/me', requireAuth, (req, res) => {
-  res.json({
-    id: req.userId,
-    email: req.userEmail,
-    isAdmin: req.isAdmin || false
-  });
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+  try {
+    const pool = getPool();
+    const result = await pool.query(
+      'SELECT id, email, full_name, is_admin, field_permissions FROM users WHERE id = $1',
+      [req.userId]
+    );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = result.rows[0];
+    res.json({
+      id: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      isAdmin: user.is_admin || false,
+      fieldPermissions: user.field_permissions || {
+        code: true,
+        name: true,
+        description: true,
+        salePrice: true,
+        salesAccount: true,
+        salesTax: true,
+        costPrice: true,
+        purchaseAccount: true,
+        purchaseTax: true,
+        status: true
+      }
+    });
+  } catch (error) {
+    console.error('[Prodit] Failed to fetch user:', error.message);
+    res.status(500).json({ error: 'Failed to fetch user data' });
+  }
 });
 
 // ===== XERO OAUTH ENDPOINTS =====
@@ -429,7 +458,7 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
 // Create a new user (admin only)
 app.post('/api/admin/users', requireAdmin, async (req, res) => {
   try {
-    const { email, password, fullName, isAdmin } = req.body;
+    const { email, password, fullName, isAdmin, fieldPermissions } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -447,12 +476,34 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
 
     // Hash password and create user
     const passwordHash = await hashPassword(password);
-    const user = await createUser({
-      email: email.toLowerCase(),
+
+    const pool = getPool();
+    const query = `
+      INSERT INTO users (email, password_hash, full_name, is_admin, field_permissions)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, email, full_name, is_admin, field_permissions, created_at
+    `;
+
+    const result = await pool.query(query, [
+      email.toLowerCase(),
       passwordHash,
-      fullName: fullName || null,
-      isAdmin: Boolean(isAdmin) // Allow admins to create other admin users
-    });
+      fullName || null,
+      Boolean(isAdmin),
+      JSON.stringify(fieldPermissions || {
+        code: true,
+        name: true,
+        description: true,
+        salePrice: true,
+        salesAccount: true,
+        salesTax: true,
+        costPrice: true,
+        purchaseAccount: true,
+        purchaseTax: true,
+        status: true
+      })
+    ]);
+
+    const user = result.rows[0];
 
     res.json({
       success: true,
@@ -461,6 +512,7 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
         email: user.email,
         fullName: user.full_name,
         isAdmin: user.is_admin,
+        fieldPermissions: user.field_permissions,
         createdAt: user.created_at
       }
     });
@@ -474,7 +526,7 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
 app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-    const { email, fullName, password, isAdmin } = req.body;
+    const { email, fullName, password, isAdmin, fieldPermissions } = req.body;
 
     // Validate input
     if (email) {
@@ -516,6 +568,11 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
       values.push(isAdmin);
     }
 
+    if (fieldPermissions) {
+      updates.push(`field_permissions = $${paramCount++}`);
+      values.push(JSON.stringify(fieldPermissions));
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No fields to update' });
     }
@@ -527,7 +584,7 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
       UPDATE users
       SET ${updates.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING id, email, full_name, is_admin, created_at
+      RETURNING id, email, full_name, is_admin, field_permissions, created_at
     `;
 
     const result = await pool.query(query, values);
@@ -543,6 +600,7 @@ app.put('/api/admin/users/:id', requireAdmin, async (req, res) => {
         email: result.rows[0].email,
         fullName: result.rows[0].full_name,
         isAdmin: result.rows[0].is_admin,
+        fieldPermissions: result.rows[0].field_permissions,
         createdAt: result.rows[0].created_at
       }
     });

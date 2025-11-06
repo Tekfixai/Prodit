@@ -62,6 +62,20 @@ export default function AdminDashboard({ user, onLogout }) {
     setLoading(true)
     setMessage('Creating user...')
 
+    // Extract field permissions
+    const fieldPermissions = {
+      code: formData.get('perm_code') === 'on',
+      name: formData.get('perm_name') === 'on',
+      description: formData.get('perm_description') === 'on',
+      salePrice: formData.get('perm_salePrice') === 'on',
+      salesAccount: formData.get('perm_salesAccount') === 'on',
+      salesTax: formData.get('perm_salesTax') === 'on',
+      costPrice: formData.get('perm_costPrice') === 'on',
+      purchaseAccount: formData.get('perm_purchaseAccount') === 'on',
+      purchaseTax: formData.get('perm_purchaseTax') === 'on',
+      status: formData.get('perm_status') === 'on'
+    }
+
     try {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
@@ -71,7 +85,8 @@ export default function AdminDashboard({ user, onLogout }) {
           email: formData.get('email'),
           password: formData.get('password'),
           fullName: formData.get('fullName'),
-          isAdmin: formData.get('isAdmin') === 'on'
+          isAdmin: formData.get('isAdmin') === 'on',
+          fieldPermissions
         })
       })
 
@@ -99,10 +114,25 @@ export default function AdminDashboard({ user, onLogout }) {
     setLoading(true)
     setMessage('Updating user...')
 
+    // Extract field permissions
+    const fieldPermissions = {
+      code: formData.get('perm_code') === 'on',
+      name: formData.get('perm_name') === 'on',
+      description: formData.get('perm_description') === 'on',
+      salePrice: formData.get('perm_salePrice') === 'on',
+      salesAccount: formData.get('perm_salesAccount') === 'on',
+      salesTax: formData.get('perm_salesTax') === 'on',
+      costPrice: formData.get('perm_costPrice') === 'on',
+      purchaseAccount: formData.get('perm_purchaseAccount') === 'on',
+      purchaseTax: formData.get('perm_purchaseTax') === 'on',
+      status: formData.get('perm_status') === 'on'
+    }
+
     const updateData = {
       email: formData.get('email'),
       fullName: formData.get('fullName'),
-      isAdmin: formData.get('isAdmin') === 'on'
+      isAdmin: formData.get('isAdmin') === 'on',
+      fieldPermissions
     }
 
     // Only include password if it was provided
@@ -386,6 +416,53 @@ export default function AdminDashboard({ user, onLogout }) {
                           <span>Make this user an admin</span>
                         </label>
                       </div>
+
+                      <div className="permissions-section">
+                        <h5>Field Permissions (what fields can this user edit?)</h5>
+                        <div className="permissions-grid">
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_code" defaultChecked />
+                            <span>Code</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_name" defaultChecked />
+                            <span>Name</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_description" defaultChecked />
+                            <span>Description</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_salePrice" defaultChecked />
+                            <span>Sale Price</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_salesAccount" defaultChecked />
+                            <span>Sales Account</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_salesTax" defaultChecked />
+                            <span>Sales Tax</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_costPrice" defaultChecked />
+                            <span>Cost Price</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_purchaseAccount" defaultChecked />
+                            <span>Purchase Account</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_purchaseTax" defaultChecked />
+                            <span>Purchase Tax</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_status" defaultChecked />
+                            <span>Status</span>
+                          </label>
+                        </div>
+                      </div>
+
                       <button type="submit" className="btn-primary" disabled={loading}>Create User</button>
                     </form>
                   </div>
@@ -433,6 +510,53 @@ export default function AdminDashboard({ user, onLogout }) {
                           <span>Admin user</span>
                         </label>
                       </div>
+
+                      <div className="permissions-section">
+                        <h5>Field Permissions (what fields can this user edit?)</h5>
+                        <div className="permissions-grid">
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_code" defaultChecked={editingUser.field_permissions?.code !== false} />
+                            <span>Code</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_name" defaultChecked={editingUser.field_permissions?.name !== false} />
+                            <span>Name</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_description" defaultChecked={editingUser.field_permissions?.description !== false} />
+                            <span>Description</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_salePrice" defaultChecked={editingUser.field_permissions?.salePrice !== false} />
+                            <span>Sale Price</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_salesAccount" defaultChecked={editingUser.field_permissions?.salesAccount !== false} />
+                            <span>Sales Account</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_salesTax" defaultChecked={editingUser.field_permissions?.salesTax !== false} />
+                            <span>Sales Tax</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_costPrice" defaultChecked={editingUser.field_permissions?.costPrice !== false} />
+                            <span>Cost Price</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_purchaseAccount" defaultChecked={editingUser.field_permissions?.purchaseAccount !== false} />
+                            <span>Purchase Account</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_purchaseTax" defaultChecked={editingUser.field_permissions?.purchaseTax !== false} />
+                            <span>Purchase Tax</span>
+                          </label>
+                          <label className="permission-item">
+                            <input type="checkbox" name="perm_status" defaultChecked={editingUser.field_permissions?.status !== false} />
+                            <span>Status</span>
+                          </label>
+                        </div>
+                      </div>
+
                       <button type="submit" className="btn-primary" disabled={loading}>Update User</button>
                     </form>
                   </div>

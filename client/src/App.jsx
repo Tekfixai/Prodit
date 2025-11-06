@@ -168,12 +168,12 @@ export default function App() {
   const taxOptions = taxRates.filter(t => t?.Status !== 'DELETED').map(t => ({ value: t.TaxType, label: t.Name }))
   const accountOptions = accounts.filter(a => a?.Status === 'ACTIVE').sort((a,b)=>String(a.Code).localeCompare(String(b.Code))).map(a => ({ value: String(a.Code||''), label: `${a.Code||''} — ${a.Name||''}` }))
 
-  function TaxSelect({ item, path, value }) {
-    return (<select value={value||''} onChange={e=>setNested(item, path, e.target.value)}><option value=""></option>{taxOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select>)
+  function TaxSelect({ item, path, value, disabled }) {
+    return (<select value={value||''} onChange={e=>setNested(item, path, e.target.value)} disabled={disabled}><option value=""></option>{taxOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select>)
   }
 
-  function AccountSelect({ item, path, value }) {
-    return (<select value={value||''} onChange={e=>setNested(item, path, e.target.value)}><option value=""></option>{accountOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select>)
+  function AccountSelect({ item, path, value, disabled }) {
+    return (<select value={value||''} onChange={e=>setNested(item, path, e.target.value)} disabled={disabled}><option value=""></option>{accountOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}</select>)
   }
 
   // Column widths
@@ -416,19 +416,25 @@ export default function App() {
                     const salePrice = item?.SalesDetails?.UnitPrice ?? ''
                     const costPrice = item?.PurchaseDetails?.UnitPrice ?? ''
                     const tracked = item?.IsTrackedAsInventory
+                    // Get field permissions (default all true for admins or if not set)
+                    const perms = user?.fieldPermissions || {
+                      code: true, name: true, description: true,
+                      salePrice: true, salesAccount: true, salesTax: true,
+                      costPrice: true, purchaseAccount: true, purchaseTax: true, status: true
+                    }
                     return (
                       <tr key={item.ItemID} className={changed[item.ItemID]?'changes':''}>
-                        <td><code className="inline">{item.Code}</code></td>
-                        <td><input type="text" value={item.Name||''} onChange={e=>setField(item,'Name',e.target.value)} /></td>
-                        <td><input type="text" value={item.Description||''} onChange={e=>setField(item,'Description',e.target.value)} /></td>
-                        <td><input type="number" step="0.01" value={salePrice} onChange={e=>setNested(item,'SalesDetails.UnitPrice',e.target.value)} /></td>
-                        <td><AccountSelect item={item} path="SalesDetails.AccountCode" value={item.SalesDetails?.AccountCode||''} /></td>
-                        <td><TaxSelect item={item} path="SalesDetails.TaxType" value={item.SalesDetails?.TaxType||''} /></td>
-                        <td><input type="number" step="0.01" value={costPrice} onChange={e=>setNested(item,'PurchaseDetails.UnitPrice',e.target.value)} /></td>
-                        <td><AccountSelect item={item} path="PurchaseDetails.AccountCode" value={item.PurchaseDetails?.AccountCode||''} /></td>
-                        <td><TaxSelect item={item} path="PurchaseDetails.TaxType" value={item.PurchaseDetails?.TaxType||''} /></td>
+                        <td><input type="text" value={item.Code||''} onChange={e=>setField(item,'Code',e.target.value)} disabled={!perms.code} /></td>
+                        <td><input type="text" value={item.Name||''} onChange={e=>setField(item,'Name',e.target.value)} disabled={!perms.name} /></td>
+                        <td><input type="text" value={item.Description||''} onChange={e=>setField(item,'Description',e.target.value)} disabled={!perms.description} /></td>
+                        <td><input type="number" step="0.01" value={salePrice} onChange={e=>setNested(item,'SalesDetails.UnitPrice',e.target.value)} disabled={!perms.salePrice} /></td>
+                        <td><AccountSelect item={item} path="SalesDetails.AccountCode" value={item.SalesDetails?.AccountCode||''} disabled={!perms.salesAccount} /></td>
+                        <td><TaxSelect item={item} path="SalesDetails.TaxType" value={item.SalesDetails?.TaxType||''} disabled={!perms.salesTax} /></td>
+                        <td><input type="number" step="0.01" value={costPrice} onChange={e=>setNested(item,'PurchaseDetails.UnitPrice',e.target.value)} disabled={!perms.costPrice} /></td>
+                        <td><AccountSelect item={item} path="PurchaseDetails.AccountCode" value={item.PurchaseDetails?.AccountCode||''} disabled={!perms.purchaseAccount} /></td>
+                        <td><TaxSelect item={item} path="PurchaseDetails.TaxType" value={item.PurchaseDetails?.TaxType||''} disabled={!perms.purchaseTax} /></td>
                         <td>
-                          <select value={item.Status||'ACTIVE'} onChange={e=>setField(item,'Status',e.target.value)}>
+                          <select value={item.Status||'ACTIVE'} onChange={e=>setField(item,'Status',e.target.value)} disabled={!perms.status}>
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="ARCHIVED">ARCHIVED</option>
                           </select>
