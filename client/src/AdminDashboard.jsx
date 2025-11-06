@@ -9,6 +9,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
+  const [editingUser, setEditingUser] = useState(null)
   const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'light')
   const [activeView, setActiveView] = useState('dashboard') // 'dashboard' or 'users'
 
@@ -80,6 +81,49 @@ export default function AdminDashboard({ user, onLogout }) {
         setMessage('User created successfully!')
         setShowCreateUser(false)
         e.target.reset()
+        await loadUsers()
+      } else {
+        setMessage(`Error: ${data.error}`)
+      }
+    } catch (error) {
+      setMessage(`Error: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleUpdateUser(e) {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+
+    setLoading(true)
+    setMessage('Updating user...')
+
+    const updateData = {
+      email: formData.get('email'),
+      fullName: formData.get('fullName'),
+      isAdmin: formData.get('isAdmin') === 'on'
+    }
+
+    // Only include password if it was provided
+    const password = formData.get('password')
+    if (password && password.trim() !== '') {
+      updateData.password = password
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updateData)
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage('User updated successfully!')
+        setEditingUser(null)
         await loadUsers()
       } else {
         setMessage(`Error: ${data.error}`)
@@ -347,6 +391,53 @@ export default function AdminDashboard({ user, onLogout }) {
                   </div>
                 )}
 
+                {editingUser && (
+                  <div className="create-user-form">
+                    <form onSubmit={handleUpdateUser}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h4 style={{ margin: 0 }}>Edit User</h4>
+                        <button
+                          type="button"
+                          onClick={() => setEditingUser(null)}
+                          className="btn-sm btn-secondary"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="form-grid">
+                        <input
+                          type="email"
+                          name="email"
+                          placeholder="Email"
+                          defaultValue={editingUser.email}
+                          required
+                        />
+                        <input
+                          type="text"
+                          name="fullName"
+                          placeholder="Full Name (optional)"
+                          defaultValue={editingUser.full_name || ''}
+                        />
+                        <input
+                          type="password"
+                          name="password"
+                          placeholder="New Password (leave blank to keep current)"
+                          minLength={8}
+                        />
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            name="isAdmin"
+                            defaultChecked={editingUser.is_admin}
+                          />
+                          <span>Admin user</span>
+                        </label>
+                      </div>
+                      <button type="submit" className="btn-primary" disabled={loading}>Update User</button>
+                    </form>
+                  </div>
+                )}
+
                 {users.length === 0 ? (
                   <p style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>No users found.</p>
                 ) : (
@@ -381,6 +472,13 @@ export default function AdminDashboard({ user, onLogout }) {
                             <td>
                               {u.id !== user.id ? (
                                 <div className="action-buttons">
+                                  <button
+                                    onClick={() => setEditingUser(u)}
+                                    disabled={loading}
+                                    className="btn-sm btn-primary-outline"
+                                  >
+                                    Edit
+                                  </button>
                                   <button
                                     onClick={() => toggleUserStatus(u.id, u.is_active)}
                                     disabled={loading}

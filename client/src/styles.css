@@ -511,6 +511,17 @@ code.inline{background:var(--badge-bg);padding:2px 6px;border-radius:6px;border:
   border-color:#dc3545;
 }
 
+.btn-sm.btn-primary-outline{
+  background:transparent;
+  color:var(--accent);
+  border-color:var(--accent);
+}
+
+.btn-sm.btn-primary-outline:hover{
+  background:var(--accent);
+  color:#fff;
+}
+
 .btn-sm:hover{
   transform:translateY(-1px);
   box-shadow:0 2px 8px rgba(0,0,0,0.1);
