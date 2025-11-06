@@ -2,13 +2,55 @@
 
 **Last Updated:** 2025-11-06
 **Version:** v3.0 SaaS
-**Status:** Enhanced UI & Pagination Complete ✅
+**Status:** Permission Loading Fix Complete ✅
 
 ---
 
 ## Recent Updates
 
-### Enhanced UI Design & Pagination Fixes (2025-11-06 - Latest)
+### Permission Loading Race Condition Fix (2025-11-06 - Latest)
+
+Fixed a critical bug where field permissions weren't enforced on first login, only after page refresh.
+
+#### Problem Identified
+
+- **Issue:** When non-admin users logged in for the first time, all fields were editable
+- **Root Cause:** Fallback permissions in `App.jsx` defaulted to all `true` while actual permissions were being fetched from API
+- **User Impact:** Users could temporarily edit fields they shouldn't have access to until permissions loaded
+
+#### Solution Implemented
+
+Modified permission fallback logic in `client/src/App.jsx` (lines 421-430):
+
+**Before:**
+```javascript
+const perms = user?.fieldPermissions || {
+  code: true, name: true, // ... all true
+}
+```
+
+**After:**
+```javascript
+const perms = user?.fieldPermissions || (user?.isAdmin ? {
+  code: true, name: true, // ... all true for admins
+} : {
+  code: false, name: false, // ... all false for regular users
+})
+```
+
+#### Result
+
+- **Admin users:** Continue to have full access immediately (no change)
+- **Regular users:** All fields start disabled until actual permissions load from API
+- **Security:** No temporary access to restricted fields during loading phase
+
+#### Commit
+
+- `c82d16d` - Fix permission loading race condition on first login
+
+---
+
+### Enhanced UI Design & Pagination Fixes (2025-11-06)
 
 Implemented a comprehensive UI redesign with improved aesthetics, fixed pagination, and better user experience.
 
