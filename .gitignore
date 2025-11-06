@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Build outputs
+client/dist/
+dist/
+
+# Data & Vault files
+data/
+*.vault
+
+# Development files
+*.log
+*.pid
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development artifacts
+PreditorV2.zip
+portable-*.ps1
+server-env-bootstrap.cjs
+remove-config-bom.ps1
+
+# OS
+*.bak
+*~

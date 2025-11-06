@@ -1,0 +1,40 @@
+{
+  "name": "prodit",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Prodit — Multi-tenant Xero Products and Services Editor (SaaS)",
+  "scripts": {
+    "server": "node server.js",
+    "client": "vite --config client/vite.config.mjs",
+    "serve": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "vite build --config client/vite.config.mjs",
+    "start": "npm run build && node server.js",
+    "migrate": "node database/migrate.js",
+    "dev": "npm run serve",
+    "railway:build": "npm run build",
+    "railway:start": "npm run migrate && node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "bcrypt": "^5.1.1",
+    "connect-pg-simple": "^9.0.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.17.3",
+    "express-rate-limit": "^7.1.5",
+    "pg": "^8.11.3",
+    "qs": "^6.12.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.2",
+    "concurrently": "^8.2.2",
+    "vite": "^5.4.19",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
