@@ -429,7 +429,7 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
 // Create a new user (admin only)
 app.post('/api/admin/users', requireAdmin, async (req, res) => {
   try {
-    const { email, password, fullName } = req.body;
+    const { email, password, fullName, isAdmin } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -451,7 +451,7 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
       email: email.toLowerCase(),
       passwordHash,
       fullName: fullName || null,
-      isAdmin: false // Regular users are not admins
+      isAdmin: Boolean(isAdmin) // Allow admins to create other admin users
     });
 
     res.json({

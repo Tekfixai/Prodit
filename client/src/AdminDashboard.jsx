@@ -69,7 +69,8 @@ export default function AdminDashboard({ user, onLogout }) {
         body: JSON.stringify({
           email: formData.get('email'),
           password: formData.get('password'),
-          fullName: formData.get('fullName')
+          fullName: formData.get('fullName'),
+          isAdmin: formData.get('isAdmin') === 'on'
         })
       })
 
@@ -336,6 +337,10 @@ export default function AdminDashboard({ user, onLogout }) {
                         <input type="email" name="email" placeholder="Email" required />
                         <input type="text" name="fullName" placeholder="Full Name (optional)" />
                         <input type="password" name="password" placeholder="Password (min 8 characters)" required minLength={8} />
+                        <label className="checkbox-label">
+                          <input type="checkbox" name="isAdmin" />
+                          <span>Make this user an admin</span>
+                        </label>
                       </div>
                       <button type="submit" className="btn-primary" disabled={loading}>Create User</button>
                     </form>

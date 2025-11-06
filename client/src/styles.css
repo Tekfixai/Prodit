@@ -544,6 +544,28 @@ code.inline{background:var(--badge-bg);padding:2px 6px;border-radius:6px;border:
   margin-bottom:16px;
 }
 
+.checkbox-label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px;
+  cursor:pointer;
+  user-select:none;
+}
+
+.checkbox-label input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  cursor:pointer;
+  accent-color:var(--accent);
+}
+
+.checkbox-label span{
+  font-size:14px;
+  color:var(--text);
+  font-weight:500;
+}
+
 /* Users Table */
 .users-table-wrapper{
   overflow-x:auto;
@@ -555,6 +577,7 @@ code.inline{background:var(--badge-bg);padding:2px 6px;border-radius:6px;border:
   width:100%;
   border-collapse:collapse;
   min-width:900px;
+  table-layout:fixed;
 }
 
 .users-table thead{
@@ -572,11 +595,21 @@ code.inline{background:var(--badge-bg);padding:2px 6px;border-radius:6px;border:
   border-bottom:1px solid var(--border);
 }
 
+.users-table th:nth-child(1){ width:22%; } /* Email - wider */
+.users-table th:nth-child(2){ width:15%; } /* Full Name */
+.users-table th:nth-child(3){ width:10%; } /* Status */
+.users-table th:nth-child(4){ width:10%; } /* Role */
+.users-table th:nth-child(5){ width:12%; } /* Created */
+.users-table th:nth-child(6){ width:12%; } /* Last Login */
+.users-table th:nth-child(7){ width:19%; } /* Actions */
+
 .users-table td{
   padding:14px 16px;
   border-bottom:1px solid var(--border);
   color:var(--text);
   font-size:14px;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .users-table tbody tr:last-child td{
