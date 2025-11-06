@@ -205,7 +205,8 @@ select:disabled{
 .table-card{
   border:1px solid var(--border);
   border-radius:12px;
-  overflow:hidden;
+  overflow-x:auto;
+  overflow-y:visible;
   background:var(--panel);
   box-shadow:var(--shadow);
   transition:all 0.3s ease;

@@ -3,7 +3,7 @@ const BUILD_LABEL = 'v3.0 SaaS'
 import { register, login, logout, getMe, getStatus, searchItems, updateItems, getTaxRates, getAccounts } from './api.js'
 import AdminDashboard from './AdminDashboard.jsx'
 
-const PAGE_LIMIT = 16
+const PAGE_LIMIT = 12
 const PREFETCH_AHEAD = 3
 
 function useDebounced(value, delay=500) {
@@ -107,6 +107,7 @@ export default function App() {
   async function loadItems() {
     if (!connected) return
     setLoading(true); setItems([]); setNote(''); pageCache.current = {}
+    setPage(1) // Reset to page 1 when loading new items
     try {
       const count = await fetchPage(1)
       setItems(pageCache.current[1] || [])
@@ -140,7 +141,7 @@ export default function App() {
       setLoading(true)
       fetchPage(page).then(() => { setItems(pageCache.current[page] || []); prefetchAhead(page + 1) }).finally(() => setLoading(false))
     }
-  }, [page])
+  }, [page, connected])
 
   function setField(item, field, value) {
     setItems(prev => prev.map(it => it.ItemID === item.ItemID ? { ...it, [field]: value } : it))
