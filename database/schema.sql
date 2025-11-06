@@ -7,15 +7,17 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(255),
+    is_admin BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP,
     is_active BOOLEAN DEFAULT true
 );
 
-CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
 
--- Xero connections table (one per user)
+-- Xero connections table (one per user, or system-wide for admin)
 CREATE TABLE IF NOT EXISTS xero_connections (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -24,14 +26,16 @@ CREATE TABLE IF NOT EXISTS xero_connections (
     encrypted_tokens TEXT NOT NULL,
     encryption_iv VARCHAR(255) NOT NULL,
     encryption_tag VARCHAR(255) NOT NULL,
+    is_system_connection BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_synced TIMESTAMP,
     UNIQUE(user_id, tenant_id)
 );
 
-CREATE INDEX idx_xero_connections_user_id ON xero_connections(user_id);
-CREATE INDEX idx_xero_connections_tenant_id ON xero_connections(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_xero_connections_user_id ON xero_connections(user_id);
+CREATE INDEX IF NOT EXISTS idx_xero_connections_tenant_id ON xero_connections(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_xero_connections_system ON xero_connections(is_system_connection);
 
 -- Sessions table (for connect-pg-simple)
 CREATE TABLE IF NOT EXISTS session (

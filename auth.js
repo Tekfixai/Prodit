@@ -1,6 +1,6 @@
 // Authentication utilities for Prodit
 import bcrypt from 'bcrypt';
-import { createUser, findUserByEmail, updateUserLastLogin } from './database/db.js';
+import { createUser, findUserByEmail, findUserById, updateUserLastLogin } from './database/db.js';
 
 const SALT_ROUNDS = 10;
 
@@ -42,6 +42,7 @@ export async function registerUser({ email, password, fullName }) {
     id: user.id,
     email: user.email,
     fullName: user.full_name,
+    isAdmin: user.is_admin || false,
     createdAt: user.created_at
   };
 }
@@ -64,6 +65,7 @@ export async function loginUser({ email, password }) {
     id: user.id,
     email: user.email,
     fullName: user.full_name,
+    isAdmin: user.is_admin || false,
     lastLogin: new Date()
   };
 }
@@ -77,10 +79,29 @@ export function requireAuth(req, res, next) {
 }
 
 // Middleware to attach user info to request
-export function attachUser(req, res, next) {
+export async function attachUser(req, res, next) {
   if (req.session?.userId) {
     req.userId = req.session.userId;
     req.userEmail = req.session.userEmail;
+
+    // Fetch and attach admin status
+    try {
+      const user = await findUserById(req.session.userId);
+      req.isAdmin = user?.is_admin || false;
+    } catch (error) {
+      req.isAdmin = false;
+    }
+  }
+  next();
+}
+
+// Middleware to require admin privileges
+export function requireAdmin(req, res, next) {
+  if (!req.session?.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  if (!req.isAdmin) {
+    return res.status(403).json({ error: 'Admin privileges required' });
   }
   next();
 }

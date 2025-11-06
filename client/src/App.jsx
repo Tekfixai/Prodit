@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 const BUILD_LABEL = 'v3.0 SaaS'
 import { register, login, logout, getMe, getStatus, searchItems, updateItems, getTaxRates, getAccounts } from './api.js'
+import AdminDashboard from './AdminDashboard.jsx'
 
 const PAGE_LIMIT = 16
 const PREFETCH_AHEAD = 3
@@ -258,6 +259,28 @@ export default function App() {
     setConnected(false)
     setItems([])
     setMessage('')
+  }
+
+  // Routing logic for admin
+  const isAdminPath = window.location.pathname === '/admin'
+
+  useEffect(() => {
+    if (!user) return
+
+    // If user is admin and not on admin path, redirect to admin
+    if (user.isAdmin && !isAdminPath && window.location.pathname === '/') {
+      window.location.pathname = '/admin'
+    }
+
+    // If user is not admin and on admin path, redirect to main app
+    if (!user.isAdmin && isAdminPath) {
+      window.location.pathname = '/'
+    }
+  }, [user, isAdminPath])
+
+  // Admin dashboard for admin users
+  if (user && user.isAdmin && isAdminPath) {
+    return <AdminDashboard user={user} onLogout={() => { setUser(null); setConnected(false); setItems([]); setMessage('') }} />
   }
 
   // Auth screen

@@ -1,6 +1,7 @@
 
 :root {
   --bg:#f6f8fb;
+  --bg-secondary:#eef2f8;
   --panel:#ffffff;
   --muted:#475569;
   --muted-2:#64748b;
@@ -17,6 +18,7 @@
 /* Lighter, higher contrast dark mode */
 html[data-theme="dark"]{
   --bg:#131a26;
+  --bg-secondary:#1a2331;
   --panel:#1b2433;
   --muted:#c6d0e3;
   --muted-2:#aeb9cf;
@@ -56,6 +58,10 @@ th{background:var(--table-head);position:sticky;top:0;z-index:10;font-weight:600
 td>div, td>input, td>select{ width:100%; }
 .status{padding:6px 9px;background:var(--badge-bg);color:var(--muted);border:1px solid var(--border);border-radius:10px}
 .badge{padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--badge-bg);color:var(--muted)}
+.badge-success{background:#d4edda;color:#155724;border-color:#c3e6cb}
+.badge-inactive{background:#f8d7da;color:#721c24;border-color:#f5c6cb}
+html[data-theme="dark"] .badge-success{background:#0f3d1a;color:#c3f0cc;border-color:#1d5c30}
+html[data-theme="dark"] .badge-inactive{background:#3d0f14;color:#f0c3cc;border-color:#5c1d25}
 tfoot td{background:var(--table-head)}
 .changes{background:color-mix(in oklab,var(--accent) 10%, transparent)}
 .small{font-size:12px;color:var(--muted-2)}

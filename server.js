@@ -10,8 +10,8 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 
 // Import database and auth modules
-import { initDatabase, getPool, getXeroConnection, saveXeroConnection, updateXeroTokens, deleteXeroConnection, getAllXeroConnections } from './database/db.js';
-import { registerUser, loginUser, requireAuth, attachUser } from './auth.js';
+import { initDatabase, getPool, getXeroConnection, saveXeroConnection, updateXeroTokens, deleteXeroConnection, getAllXeroConnections, getSystemXeroConnection, deleteSystemXeroConnection, getAllUsers, updateUserActiveStatus, deleteUser, createUser } from './database/db.js';
+import { registerUser, loginUser, requireAuth, requireAdmin, attachUser, hashPassword } from './auth.js';
 
 dotenv.config();
 
@@ -73,10 +73,11 @@ app.post('/api/auth/register', async (req, res) => {
 
     req.session.userId = user.id;
     req.session.userEmail = user.email;
+    req.session.isAdmin = user.isAdmin;
 
     res.json({
       success: true,
-      user: { id: user.id, email: user.email, fullName: user.fullName }
+      user: { id: user.id, email: user.email, fullName: user.fullName, isAdmin: user.isAdmin }
     });
   } catch (error) {
     console.error('[Prodit] Registration failed:', error.message);
@@ -91,10 +92,11 @@ app.post('/api/auth/login', async (req, res) => {
 
     req.session.userId = user.id;
     req.session.userEmail = user.email;
+    req.session.isAdmin = user.isAdmin;
 
     res.json({
       success: true,
-      user: { id: user.id, email: user.email, fullName: user.fullName }
+      user: { id: user.id, email: user.email, fullName: user.fullName, isAdmin: user.isAdmin }
     });
   } catch (error) {
     console.error('[Prodit] Login failed:', error.message);
@@ -114,7 +116,8 @@ app.post('/api/auth/logout', (req, res) => {
 app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({
     id: req.userId,
-    email: req.userEmail
+    email: req.userEmail,
+    isAdmin: req.isAdmin || false
   });
 });
 
@@ -179,16 +182,20 @@ app.get('/callback', async (req, res) => {
     const chosen = conns.sort((a, b) => new Date(b.createdDateUtc) - new Date(a.createdDateUtc))[0];
 
     // Save connection to database
+    // If user is admin, mark as system connection
     await saveXeroConnection({
       userId: req.userId,
       tenantId: chosen.tenantId,
       tenantName: chosen.tenantName,
-      tokens
+      tokens,
+      isSystemConnection: req.isAdmin || false
     });
 
-    console.log('[Prodit] Connected Xero org:', { userId: req.userId, tenant: chosen.tenantName });
+    console.log('[Prodit] Connected Xero org:', { userId: req.userId, tenant: chosen.tenantName, isSystemConnection: req.isAdmin });
 
-    res.redirect('/?connected=true');
+    // Redirect to admin dashboard if admin, otherwise to main app
+    const redirectPath = req.isAdmin ? '/admin?connected=true' : '/?connected=true';
+    res.redirect(redirectPath);
   } catch (error) {
     const detail = error.response?.data || error.message;
     console.error('[Prodit] OAuth callback failed:', detail);
@@ -198,10 +205,20 @@ app.get('/callback', async (req, res) => {
 
 // ===== XERO API HELPER =====
 
-async function ensureValidToken(userId, tenantId = null) {
-  const connection = await getXeroConnection(userId, tenantId);
+async function ensureValidToken(userId, isAdmin, tenantId = null) {
+  // If not admin, use system-wide connection
+  let connection;
+  if (isAdmin) {
+    connection = await getXeroConnection(userId, tenantId);
+  } else {
+    connection = await getSystemXeroConnection();
+  }
+
   if (!connection) {
-    throw new Error('No Xero connection found. Please connect your Xero account.');
+    const message = isAdmin
+      ? 'No Xero connection found. Please connect your Xero account.'
+      : 'System Xero connection not configured. Please contact your administrator.';
+    throw new Error(message);
   }
 
   const tokens = connection.tokens;
@@ -210,7 +227,8 @@ async function ensureValidToken(userId, tenantId = null) {
   return {
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
-    tenantId: connection.tenantId
+    tenantId: connection.tenantId,
+    connectionUserId: connection.userId
   };
 }
 
@@ -230,8 +248,8 @@ async function refreshAccessToken(userId, tenantId, refreshToken) {
   return newTokens.access_token;
 }
 
-async function xeroRequest(userId, method, urlPath, config = {}) {
-  let tokenInfo = await ensureValidToken(userId);
+async function xeroRequest(userId, isAdmin, method, urlPath, config = {}) {
+  let tokenInfo = await ensureValidToken(userId, isAdmin);
 
   const makeRequest = async (accessToken) => {
     const headers = {
@@ -250,7 +268,8 @@ async function xeroRequest(userId, method, urlPath, config = {}) {
     // If 401, try refreshing token
     if (err.response?.status === 401 && tokenInfo.refreshToken) {
       console.log('[Prodit] Access token expired, refreshing...');
-      const newAccessToken = await refreshAccessToken(userId, tokenInfo.tenantId, tokenInfo.refreshToken);
+      // Use the connection owner's userId for token refresh
+      const newAccessToken = await refreshAccessToken(tokenInfo.connectionUserId, tokenInfo.tenantId, tokenInfo.refreshToken);
       const retry = await makeRequest(newAccessToken);
       return retry.data;
     }
@@ -283,14 +302,19 @@ app.delete('/api/connections/:tenantId', requireAuth, async (req, res) => {
 
 app.get('/api/status', requireAuth, async (req, res) => {
   try {
-    const connection = await getXeroConnection(req.userId);
+    // Admin checks their own connection, regular users check system connection
+    const connection = req.isAdmin
+      ? await getXeroConnection(req.userId)
+      : await getSystemXeroConnection();
+
     res.json({
       connected: Boolean(connection),
       tenantId: connection?.tenantId || null,
-      tenantName: connection?.tenantName || null
+      tenantName: connection?.tenantName || null,
+      isSystemConnection: !req.isAdmin
     });
   } catch (error) {
-    res.json({ connected: false, tenantId: null, tenantName: null });
+    res.json({ connected: false, tenantId: null, tenantName: null, isSystemConnection: !req.isAdmin });
   }
 });
 
@@ -320,7 +344,7 @@ app.get('/api/items/search', requireAuth, async (req, res) => {
   params.set('where', buildWhere(q));
 
   try {
-    const data = await xeroRequest(req.userId, 'get', `/Items?${params.toString()}`);
+    const data = await xeroRequest(req.userId, req.isAdmin, 'get', `/Items?${params.toString()}`);
     const list = Array.isArray(data?.Items) ? data.Items : [];
     const Items = list.slice(0, limit);
     res.json({ Items, page, pageSize: limit, returned: Items.length });
@@ -336,7 +360,7 @@ app.post('/api/items/update', requireAuth, async (req, res) => {
     const items = Array.isArray(req.body.Items) ? req.body.Items : [];
     const payload = { Items: items };
 
-    const data = await xeroRequest(req.userId, 'post', '/Items', {
+    const data = await xeroRequest(req.userId, req.isAdmin, 'post', '/Items', {
       headers: { 'Content-Type': 'application/json' },
       data: JSON.stringify(payload)
     });
@@ -351,7 +375,7 @@ app.post('/api/items/update', requireAuth, async (req, res) => {
 
 app.get('/api/taxrates', requireAuth, async (req, res) => {
   try {
-    const data = await xeroRequest(req.userId, 'get', '/TaxRates');
+    const data = await xeroRequest(req.userId, req.isAdmin, 'get', '/TaxRates');
     res.json({
       TaxRates: (data?.TaxRates || []).map(t => ({
         Name: t.Name,
@@ -372,7 +396,7 @@ app.get('/api/accounts', requireAuth, async (req, res) => {
     params.set('where', 'Status=="ACTIVE"');
     params.set('order', 'Code');
 
-    const data = await xeroRequest(req.userId, 'get', `/Accounts?${params.toString()}`);
+    const data = await xeroRequest(req.userId, req.isAdmin, 'get', `/Accounts?${params.toString()}`);
     res.json({
       Accounts: (data?.Accounts || []).map(a => ({
         AccountID: a.AccountID,
@@ -386,6 +410,130 @@ app.get('/api/accounts', requireAuth, async (req, res) => {
     const detail = error.response?.data || error.message;
     console.error('[Prodit] Accounts failed:', detail);
     res.status(500).json({ error: 'accounts_failed', detail });
+  }
+});
+
+// ===== ADMIN API ENDPOINTS =====
+
+// Get all users (admin only)
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.json({ users });
+  } catch (error) {
+    console.error('[Prodit] Failed to fetch users:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create a new user (admin only)
+app.post('/api/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const { email, password, fullName } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Hash password and create user
+    const passwordHash = await hashPassword(password);
+    const user = await createUser({
+      email: email.toLowerCase(),
+      passwordHash,
+      fullName: fullName || null,
+      isAdmin: false // Regular users are not admins
+    });
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        isAdmin: user.is_admin,
+        createdAt: user.created_at
+      }
+    });
+  } catch (error) {
+    console.error('[Prodit] Failed to create user:', error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update user active status (admin only)
+app.put('/api/admin/users/:id/status', requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { isActive } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ error: 'isActive must be a boolean' });
+    }
+
+    // Prevent admin from deactivating themselves
+    if (userId === req.userId && !isActive) {
+      return res.status(400).json({ error: 'You cannot deactivate your own account' });
+    }
+
+    await updateUserActiveStatus(userId, isActive);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Prodit] Failed to update user status:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete user (admin only)
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+
+    // Prevent admin from deleting themselves
+    if (userId === req.userId) {
+      return res.status(400).json({ error: 'You cannot delete your own account' });
+    }
+
+    const deleted = await deleteUser(userId);
+    res.json({ success: deleted });
+  } catch (error) {
+    console.error('[Prodit] Failed to delete user:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get system Xero connection status (admin only)
+app.get('/api/admin/xero/status', requireAdmin, async (req, res) => {
+  try {
+    const connection = await getSystemXeroConnection();
+    res.json({
+      connected: Boolean(connection),
+      tenantId: connection?.tenantId || null,
+      tenantName: connection?.tenantName || null,
+      lastSynced: connection?.lastSynced || null
+    });
+  } catch (error) {
+    res.json({ connected: false, tenantId: null, tenantName: null, lastSynced: null });
+  }
+});
+
+// Disconnect system Xero connection (admin only)
+app.delete('/api/admin/xero/disconnect', requireAdmin, async (req, res) => {
+  try {
+    const deleted = await deleteSystemXeroConnection();
+    res.json({ success: deleted });
+  } catch (error) {
+    console.error('[Prodit] Failed to disconnect Xero:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 

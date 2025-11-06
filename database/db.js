@@ -33,13 +33,18 @@ export function getPool() {
 
 // ===== USER OPERATIONS =====
 
-export async function createUser({ email, passwordHash, fullName }) {
+export async function createUser({ email, passwordHash, fullName, isAdmin = false }) {
+  // Check if this is the first user - make them admin automatically
+  const countQuery = 'SELECT COUNT(*) as count FROM users';
+  const countResult = await pool.query(countQuery);
+  const isFirstUser = parseInt(countResult.rows[0].count) === 0;
+
   const query = `
-    INSERT INTO users (email, password_hash, full_name)
-    VALUES ($1, $2, $3)
-    RETURNING id, email, full_name, created_at
+    INSERT INTO users (email, password_hash, full_name, is_admin)
+    VALUES ($1, $2, $3, $4)
+    RETURNING id, email, full_name, is_admin, created_at
   `;
-  const result = await pool.query(query, [email, passwordHash, fullName]);
+  const result = await pool.query(query, [email, passwordHash, fullName, isFirstUser || isAdmin]);
   return result.rows[0];
 }
 
@@ -50,9 +55,26 @@ export async function findUserByEmail(email) {
 }
 
 export async function findUserById(id) {
-  const query = 'SELECT id, email, full_name, created_at, last_login FROM users WHERE id = $1 AND is_active = true';
+  const query = 'SELECT id, email, full_name, is_admin, created_at, last_login FROM users WHERE id = $1 AND is_active = true';
   const result = await pool.query(query, [id]);
   return result.rows[0] || null;
+}
+
+export async function getAllUsers() {
+  const query = 'SELECT id, email, full_name, is_admin, created_at, last_login, is_active FROM users ORDER BY created_at DESC';
+  const result = await pool.query(query);
+  return result.rows;
+}
+
+export async function updateUserActiveStatus(userId, isActive) {
+  const query = 'UPDATE users SET is_active = $1 WHERE id = $2';
+  await pool.query(query, [isActive, userId]);
+}
+
+export async function deleteUser(userId) {
+  const query = 'DELETE FROM users WHERE id = $1';
+  const result = await pool.query(query, [userId]);
+  return result.rowCount > 0;
 }
 
 export async function updateUserLastLogin(userId) {
@@ -104,23 +126,24 @@ export function decryptTokens(encrypted, iv, tag) {
   return JSON.parse(decrypted.toString('utf8'));
 }
 
-export async function saveXeroConnection({ userId, tenantId, tenantName, tokens }) {
+export async function saveXeroConnection({ userId, tenantId, tenantName, tokens, isSystemConnection = false }) {
   const { encrypted, iv, tag } = encryptTokens(tokens);
 
   const query = `
-    INSERT INTO xero_connections (user_id, tenant_id, tenant_name, encrypted_tokens, encryption_iv, encryption_tag, last_synced)
-    VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+    INSERT INTO xero_connections (user_id, tenant_id, tenant_name, encrypted_tokens, encryption_iv, encryption_tag, is_system_connection, last_synced)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
     ON CONFLICT (user_id, tenant_id)
     DO UPDATE SET
       tenant_name = EXCLUDED.tenant_name,
       encrypted_tokens = EXCLUDED.encrypted_tokens,
       encryption_iv = EXCLUDED.encryption_iv,
       encryption_tag = EXCLUDED.encryption_tag,
+      is_system_connection = EXCLUDED.is_system_connection,
       last_synced = CURRENT_TIMESTAMP
     RETURNING id, tenant_id, tenant_name
   `;
 
-  const result = await pool.query(query, [userId, tenantId, tenantName, encrypted, iv, tag]);
+  const result = await pool.query(query, [userId, tenantId, tenantName, encrypted, iv, tag, isSystemConnection]);
   return result.rows[0];
 }
 
@@ -190,4 +213,36 @@ export async function updateXeroTokens(userId, tenantId, tokens) {
   `;
 
   await pool.query(query, [encrypted, iv, tag, userId, tenantId]);
+}
+
+// ===== SYSTEM-WIDE XERO CONNECTION (for admin) =====
+
+export async function getSystemXeroConnection() {
+  const query = `
+    SELECT * FROM xero_connections
+    WHERE is_system_connection = true
+    ORDER BY last_synced DESC
+    LIMIT 1
+  `;
+
+  const result = await pool.query(query);
+  if (!result.rows[0]) return null;
+
+  const row = result.rows[0];
+  const tokens = decryptTokens(row.encrypted_tokens, row.encryption_iv, row.encryption_tag);
+
+  return {
+    id: row.id,
+    userId: row.user_id,
+    tenantId: row.tenant_id,
+    tenantName: row.tenant_name,
+    tokens,
+    lastSynced: row.last_synced
+  };
+}
+
+export async function deleteSystemXeroConnection() {
+  const query = 'DELETE FROM xero_connections WHERE is_system_connection = true';
+  const result = await pool.query(query);
+  return result.rowCount > 0;
 }
