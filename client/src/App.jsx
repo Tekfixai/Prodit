@@ -3,7 +3,7 @@ const BUILD_LABEL = 'v3.0 SaaS'
 import { register, login, logout, getMe, getStatus, searchItems, updateItems, getTaxRates, getAccounts } from './api.js'
 import AdminDashboard from './AdminDashboard.jsx'
 
-const PAGE_LIMIT = 12
+const PAGE_LIMIT = 8
 const PREFETCH_AHEAD = 3
 
 function useDebounced(value, delay=500) {
