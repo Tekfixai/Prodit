@@ -10,6 +10,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const [message, setMessage] = useState('')
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [theme, setTheme] = useState(document.documentElement.getAttribute('data-theme') || 'light')
+  const [activeView, setActiveView] = useState('dashboard') // 'dashboard' or 'users'
 
   function toggleTheme() {
     const next = theme === 'light' ? 'dark' : 'light'
@@ -181,132 +182,234 @@ export default function AdminDashboard({ user, onLogout }) {
   }
 
   return (
-    <div>
-      <header>
-        <div className="header-inner">
-          <div className="title">Prodit Admin <span className="build-badge">{BUILD_LABEL}</span></div>
-          <div className="toolbar">
-            <label className="switch">
+    <div className="admin-layout">
+      {/* Sidebar */}
+      <aside className="admin-sidebar">
+        <div className="admin-brand">
+          <h1>Prodit Admin</h1>
+          <span className="build-badge">{BUILD_LABEL}</span>
+        </div>
+
+        <nav className="admin-nav">
+          <div className="admin-nav-section">
+            <button
+              className={`admin-nav-item ${activeView === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setActiveView('dashboard')}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Dashboard</span>
+            </button>
+
+            <button
+              className={`admin-nav-item ${activeView === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveView('users')}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>User Management</span>
+            </button>
+
+            <button className="admin-nav-item" onClick={() => window.location.href = '/auth/xero'}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <span>Xero Connection</span>
+            </button>
+          </div>
+
+          <div className="admin-nav-section admin-nav-bottom">
+            <label className="switch" style={{ padding: '8px 16px' }}>
               <input id="theme-toggle" type="checkbox" checked={theme==='dark'} onChange={toggleTheme} />
               <span className="track"><span className="thumb"></span></span>
               <label htmlFor="theme-toggle" className="small">{theme==='dark' ? 'Dark' : 'Light'}</label>
             </label>
-
-            <span className="small">{user.email}</span>
-            <button onClick={handleLogout}>Logout</button>
           </div>
-        </div>
-      </header>
+        </nav>
+      </aside>
 
-      <div className="container">
-        <h2>Admin Dashboard</h2>
-        {message && <p className="message" style={{ marginBottom: '1rem' }}>{message}</p>}
+      {/* Main Content */}
+      <div className="admin-main">
+        <header className="admin-header">
+          <div className="admin-header-content">
+            <h2>{activeView === 'dashboard' ? 'Dashboard' : 'User Management'}</h2>
+            <div className="admin-header-actions">
+              <span className="admin-user-badge">{user.email}</span>
+              <button onClick={handleLogout} className="btn-secondary">Logout</button>
+            </div>
+          </div>
+        </header>
 
-        {/* Xero Connection Section */}
-        <div className="table-card" style={{ marginBottom: '2rem' }}>
-          <h3 style={{ margin: '0 0 1rem 0' }}>System Xero Connection</h3>
-          {xeroStatus.connected ? (
-            <div>
-              <p><strong>Status:</strong> Connected</p>
-              <p><strong>Organization:</strong> {xeroStatus.tenantName}</p>
-              <p><strong>Tenant ID:</strong> {xeroStatus.tenantId}</p>
-              <p><strong>Last Synced:</strong> {xeroStatus.lastSynced ? new Date(xeroStatus.lastSynced).toLocaleString() : 'N/A'}</p>
-              <div style={{ marginTop: '1rem' }}>
-                <button onClick={disconnectXero} disabled={loading}>Disconnect Xero</button>
-                <a href="/auth/xero" className="btn-link" style={{ marginLeft: '1rem' }}>Reconnect Xero</a>
+        <div className="admin-content">
+          {message && <div className="alert alert-info">{message}</div>}
+
+          {activeView === 'dashboard' && (
+            <>
+              <div className="welcome-message">
+                <h3>Welcome back, {user.email?.split('@')[0]}!</h3>
+                <p>This is your dashboard. You can view system status and manage your account.</p>
               </div>
+
+              <div className="admin-stats-grid">
+                <div className="admin-stat-card">
+                  <div className="admin-stat-label">Role</div>
+                  <div className="admin-stat-value">Admin</div>
+                </div>
+                <div className="admin-stat-card">
+                  <div className="admin-stat-label">Status</div>
+                  <div className="admin-stat-value status-active">Active</div>
+                </div>
+                <div className="admin-stat-card">
+                  <div className="admin-stat-label">Organization</div>
+                  <div className="admin-stat-value">{xeroStatus.tenantName || 'Not Connected'}</div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeView === 'dashboard' && (
+            <div className="admin-card">
+              <h3>System Xero Connection</h3>
+              {xeroStatus.connected ? (
+                <div className="xero-connected">
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <span className="info-label">Status</span>
+                      <span className="badge badge-success">Connected</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Organization</span>
+                      <span className="info-value">{xeroStatus.tenantName}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Tenant ID</span>
+                      <span className="info-value">{xeroStatus.tenantId}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Last Synced</span>
+                      <span className="info-value">{xeroStatus.lastSynced ? new Date(xeroStatus.lastSynced).toLocaleString() : 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="button-group" style={{ marginTop: '1.5rem' }}>
+                    <button onClick={disconnectXero} disabled={loading} className="btn-secondary">Disconnect Xero</button>
+                    <a href="/auth/xero" className="btn-primary">Reconnect Xero</a>
+                  </div>
+                </div>
+              ) : (
+                <div className="xero-disconnected">
+                  <p>No Xero connection configured. Users will not be able to access the system until you connect Xero.</p>
+                  <a href="/auth/xero" className="btn-primary">Connect Xero Organization</a>
+                </div>
+              )}
             </div>
-          ) : (
-            <div>
-              <p>No Xero connection configured. Users will not be able to access the system until you connect Xero.</p>
-              <a href="/auth/xero" className="btn-primary">Connect Xero Organization</a>
-            </div>
+          )}
+
+          {activeView === 'users' && (
+            <>
+              <div className="admin-card">
+                <div className="card-header">
+                  <h3>Users</h3>
+                  <button className="btn-primary" onClick={() => setShowCreateUser(!showCreateUser)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '8px' }}>
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    {showCreateUser ? 'Cancel' : 'Create New User'}
+                  </button>
+                </div>
+
+                {showCreateUser && (
+                  <div className="create-user-form">
+                    <form onSubmit={handleCreateUser}>
+                      <h4>Create New User</h4>
+                      <div className="form-grid">
+                        <input type="email" name="email" placeholder="Email" required />
+                        <input type="text" name="fullName" placeholder="Full Name (optional)" />
+                        <input type="password" name="password" placeholder="Password (min 8 characters)" required minLength={8} />
+                      </div>
+                      <button type="submit" className="btn-primary" disabled={loading}>Create User</button>
+                    </form>
+                  </div>
+                )}
+
+                {users.length === 0 ? (
+                  <p style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>No users found.</p>
+                ) : (
+                  <div className="users-table-wrapper">
+                    <table className="users-table">
+                      <thead>
+                        <tr>
+                          <th>Email</th>
+                          <th>Full Name</th>
+                          <th>Status</th>
+                          <th>Role</th>
+                          <th>Created</th>
+                          <th>Last Login</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map(u => (
+                          <tr key={u.id}>
+                            <td>{u.email}</td>
+                            <td>{u.full_name || '-'}</td>
+                            <td>
+                              <span className={`badge ${u.is_active ? 'badge-success' : 'badge-inactive'}`}>
+                                {u.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td>
+                              {u.is_admin ? <span className="badge">Admin</span> : <span className="role-user">User</span>}
+                            </td>
+                            <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                            <td>{u.last_login ? new Date(u.last_login).toLocaleDateString() : <span className="small">Never</span>}</td>
+                            <td>
+                              {u.id !== user.id ? (
+                                <div className="action-buttons">
+                                  <button
+                                    onClick={() => toggleUserStatus(u.id, u.is_active)}
+                                    disabled={loading}
+                                    className="btn-sm btn-secondary"
+                                  >
+                                    {u.is_active ? 'Deactivate' : 'Activate'}
+                                  </button>
+                                  <button
+                                    onClick={() => deleteUser(u.id, u.email)}
+                                    disabled={loading}
+                                    className="btn-sm btn-danger"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="small" style={{ color: 'var(--muted)' }}>You</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
 
-        {/* User Management Section */}
-        <div className="table-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0 }}>User Management</h3>
-            <button className="primary" onClick={() => setShowCreateUser(!showCreateUser)}>
-              {showCreateUser ? 'Cancel' : 'Create New User'}
-            </button>
-          </div>
-
-          {showCreateUser && (
-            <div style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '4px', marginBottom: '1rem' }}>
-              <form onSubmit={handleCreateUser}>
-                <h4 style={{ marginTop: 0 }}>Create New User</h4>
-                <div style={{ display: 'grid', gap: '0.5rem' }}>
-                  <input type="email" name="email" placeholder="Email" required />
-                  <input type="text" name="fullName" placeholder="Full Name (optional)" />
-                  <input type="password" name="password" placeholder="Password (min 8 characters)" required minLength={8} />
-                </div>
-                <div style={{ marginTop: '1rem' }}>
-                  <button type="submit" className="primary" disabled={loading}>Create User</button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {users.length === 0 ? (
-            <p>No users found.</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Email</th>
-                  <th>Full Name</th>
-                  <th>Status</th>
-                  <th>Role</th>
-                  <th>Created</th>
-                  <th>Last Login</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u => (
-                  <tr key={u.id}>
-                    <td>{u.email}</td>
-                    <td>{u.full_name || '-'}</td>
-                    <td>
-                      <span className={`badge ${u.is_active ? 'badge-success' : 'badge-inactive'}`}>
-                        {u.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td>{u.is_admin ? <span className="badge">Admin</span> : 'User'}</td>
-                    <td>{new Date(u.created_at).toLocaleDateString()}</td>
-                    <td>{u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never'}</td>
-                    <td>
-                      {u.id !== user.id && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => toggleUserStatus(u.id, u.is_active)}
-                            disabled={loading}
-                            style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem' }}
-                          >
-                            {u.is_active ? 'Deactivate' : 'Activate'}
-                          </button>
-                          <button
-                            onClick={() => deleteUser(u.id, u.email)}
-                            disabled={loading}
-                            style={{ fontSize: '0.85rem', padding: '0.25rem 0.5rem', background: '#dc3545' }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                      {u.id === user.id && <span className="small">You</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <footer className="admin-footer">
+          Prodit · {BUILD_LABEL} · Admin Dashboard
+        </footer>
       </div>
-
-      <footer className="footer-note">Prodit · {BUILD_LABEL} · Admin Dashboard</footer>
     </div>
   )
 }
