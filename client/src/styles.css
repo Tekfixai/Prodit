@@ -159,6 +159,16 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none}
   transition:all 0.3s ease;
 }
 
+.controls-section input.stretch{
+  margin-bottom:16px;
+}
+
+.message-inline{
+  margin-top:8px;
+  display:block;
+  color:var(--accent);
+}
+
 /* Form inputs */
 input[type=text],input[type=email],input[type=password],input[type=number],select{
   padding:10px 12px;
@@ -303,7 +313,43 @@ html[data-theme="dark"] tbody td:nth-child(7){
 tfoot td{
   background:var(--badge-bg);
   border-top:2px solid var(--border);
+  padding:0;
+}
+
+.table-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   padding:20px 24px;
+}
+
+.save-btn{
+  background:linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color:white;
+  padding:14px 32px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  font-size:15px;
+  transition:all 0.2s ease;
+  box-shadow:0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.save-btn:hover:not(:disabled){
+  transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.save-btn:disabled{
+  background:#cbd5e1;
+  cursor:not-allowed;
+  box-shadow:none;
+  transform:none;
+}
+
+html[data-theme="dark"] .save-btn:disabled{
+  background:#334155;
 }
 
 .badge{padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--badge-bg);color:var(--muted)}
@@ -320,7 +366,7 @@ code.inline{background:var(--badge-bg);padding:2px 6px;border-radius:6px;border:
   display:flex;
   gap:12px;
   align-items:center;
-  justify-content:space-between;
+  flex-wrap:wrap;
 }
 
 .pagination button{
@@ -332,25 +378,35 @@ code.inline{background:var(--badge-bg);padding:2px 6px;border-radius:6px;border:
   font-weight:600;
   font-size:14px;
   transition:all 0.2s ease;
-  color:var(--muted);
+  color:var(--text);
 }
 
 .pagination button:hover:not(:disabled){
   border-color:var(--accent);
   color:var(--accent);
   background:var(--badge-bg);
+  transform:translateY(-1px);
 }
 
-.pagination button:disabled{
+.pagination button:disabled:not(.primary){
   opacity:0.5;
   cursor:not-allowed;
+  transform:none;
 }
 
-.pagination button.active,
 .pagination button.primary{
   background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   color:white;
   border-color:transparent;
+  cursor:default;
+}
+
+.pagination button.primary:disabled{
+  opacity:1;
+}
+
+.pagination .small{
+  margin-left:auto;
 }
 
 /* Toggle switch */

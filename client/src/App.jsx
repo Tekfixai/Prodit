@@ -373,14 +373,15 @@ export default function App() {
           </div>
         ) : (
           <>
-            <div className="toolbar" style={{marginBottom: 12}}>
+            <div className="controls-section">
               <input className="stretch" type="text" placeholder="Search by code, name or description (2+ chars)" value={query} onChange={e=>{ setQuery(e.target.value); setPage(1) }} />
               <div className="pagination">
                 <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page<=1 || loading}>Previous</button>
-                <span className="badge">Page {page}</span>
+                <button className="primary" disabled>Page {page}</button>
                 <button onClick={()=>setPage(p=>p+1)} disabled={loading}>Next</button>
+                <span className="small">Only modified rows are posted in a batch. Code is included for validation.</span>
               </div>
-              {message && <span className="small">{message}</span>}
+              {message && <span className="small message-inline">{message}</span>}
             </div>
 
             <div className="table-card">
@@ -449,9 +450,9 @@ export default function App() {
                 <tfoot>
                   <tr>
                     <td colSpan="10">
-                      <div className="toolbar">
-                        <button className="primary" onClick={saveChanges} disabled={loading || changedCount===0}>Save changes</button>
-                        <span className="small">Only modified rows are posted in a batch. Code is included for validation.</span>
+                      <div className="table-footer">
+                        <button className="save-btn" onClick={saveChanges} disabled={loading || changedCount===0}>Save changes</button>
+                        <span className="small">{items.length} rows loaded • {changedCount} modified</span>
                       </div>
                     </td>
                   </tr>
