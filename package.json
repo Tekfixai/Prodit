@@ -13,7 +13,7 @@
     "migrate": "node database/migrate.js",
     "dev": "npm run serve",
     "railway:build": "npm run build",
-    "railway:start": "npm run migrate && node server.js"
+    "railway:start": "node server.js"
   },
   "dependencies": {
     "axios": "^1.7.2",
@@ -36,5 +36,17 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  }
+  },
+  "main": "auth.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tekfixai/Prodit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Tekfixai/Prodit/issues"
+  },
+  "homepage": "https://github.com/Tekfixai/Prodit#readme"
 }
