@@ -33,18 +33,13 @@ export function getPool() {
 
 // ===== USER OPERATIONS =====
 
-export async function createUser({ email, passwordHash, fullName, isAdmin = false }) {
-  // Check if this is the first user - make them admin automatically
-  const countQuery = 'SELECT COUNT(*) as count FROM users';
-  const countResult = await pool.query(countQuery);
-  const isFirstUser = parseInt(countResult.rows[0].count) === 0;
-
+export async function createUser({ email, passwordHash, fullName, organizationId, isAdmin = false }) {
   const query = `
-    INSERT INTO users (email, password_hash, full_name, is_admin)
-    VALUES ($1, $2, $3, $4)
-    RETURNING id, email, full_name, is_admin, created_at
+    INSERT INTO users (email, password_hash, full_name, organization_id, is_admin, email_verified)
+    VALUES ($1, $2, $3, $4, $5, false)
+    RETURNING id, email, full_name, organization_id, is_admin, created_at
   `;
-  const result = await pool.query(query, [email, passwordHash, fullName, isFirstUser || isAdmin]);
+  const result = await pool.query(query, [email, passwordHash, fullName, organizationId, isAdmin]);
   return result.rows[0];
 }
 
@@ -55,7 +50,7 @@ export async function findUserByEmail(email) {
 }
 
 export async function findUserById(id) {
-  const query = 'SELECT id, email, full_name, is_admin, created_at, last_login FROM users WHERE id = $1 AND is_active = true';
+  const query = 'SELECT id, email, full_name, organization_id, is_admin, is_super_admin, email_verified, created_at, last_login FROM users WHERE id = $1 AND is_active = true';
   const result = await pool.query(query, [id]);
   return result.rows[0] || null;
 }
