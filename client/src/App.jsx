@@ -418,6 +418,9 @@ export default function App() {
                     const salePrice = item?.SalesDetails?.UnitPrice ?? ''
                     const costPrice = item?.PurchaseDetails?.UnitPrice ?? ''
                     const tracked = item?.IsTrackedAsInventory
+                    const isSold = item?.IsSold !== false // Default to true if not specified
+                    const isPurchased = item?.IsPurchased !== false // Default to true if not specified
+
                     // Get field permissions (default all true if not loaded yet, as backend always sends permissions)
                     const perms = user?.fieldPermissions || {
                       code: true, name: true, description: true,
@@ -429,18 +432,20 @@ export default function App() {
                         <td><input type="text" value={item.Code||''} onChange={e=>setField(item,'Code',e.target.value)} disabled={!perms.code} /></td>
                         <td><input type="text" value={item.Name||''} onChange={e=>setField(item,'Name',e.target.value)} disabled={!perms.name} /></td>
                         <td><input type="text" value={item.Description||''} onChange={e=>setField(item,'Description',e.target.value)} disabled={!perms.description} /></td>
-                        <td><input type="number" step="0.01" value={salePrice} onChange={e=>setNested(item,'SalesDetails.UnitPrice',e.target.value)} disabled={!perms.salePrice} /></td>
-                        <td><AccountSelect item={item} path="SalesDetails.AccountCode" value={item.SalesDetails?.AccountCode||''} disabled={!perms.salesAccount} /></td>
-                        <td><TaxSelect item={item} path="SalesDetails.TaxType" value={item.SalesDetails?.TaxType||''} disabled={!perms.salesTax} /></td>
-                        <td><input type="number" step="0.01" value={costPrice} onChange={e=>setNested(item,'PurchaseDetails.UnitPrice',e.target.value)} disabled={!perms.costPrice} /></td>
-                        <td><AccountSelect item={item} path="PurchaseDetails.AccountCode" value={item.PurchaseDetails?.AccountCode||''} disabled={!perms.purchaseAccount} /></td>
-                        <td><TaxSelect item={item} path="PurchaseDetails.TaxType" value={item.PurchaseDetails?.TaxType||''} disabled={!perms.purchaseTax} /></td>
+                        <td><input type="number" step="0.01" value={salePrice} onChange={e=>setNested(item,'SalesDetails.UnitPrice',e.target.value)} disabled={!perms.salePrice || !isSold} title={!isSold ? 'This item is not marked for sale' : ''} /></td>
+                        <td><AccountSelect item={item} path="SalesDetails.AccountCode" value={item.SalesDetails?.AccountCode||''} disabled={!perms.salesAccount || !isSold} title={!isSold ? 'This item is not marked for sale' : ''} /></td>
+                        <td><TaxSelect item={item} path="SalesDetails.TaxType" value={item.SalesDetails?.TaxType||''} disabled={!perms.salesTax || !isSold} title={!isSold ? 'This item is not marked for sale' : ''} /></td>
+                        <td><input type="number" step="0.01" value={costPrice} onChange={e=>setNested(item,'PurchaseDetails.UnitPrice',e.target.value)} disabled={!perms.costPrice || !isPurchased} title={!isPurchased ? 'This item is not marked for purchase' : ''} /></td>
+                        <td><AccountSelect item={item} path="PurchaseDetails.AccountCode" value={item.PurchaseDetails?.AccountCode||''} disabled={!perms.purchaseAccount || !isPurchased} title={!isPurchased ? 'This item is not marked for purchase' : ''} /></td>
+                        <td><TaxSelect item={item} path="PurchaseDetails.TaxType" value={item.PurchaseDetails?.TaxType||''} disabled={!perms.purchaseTax || !isPurchased} title={!isPurchased ? 'This item is not marked for purchase' : ''} /></td>
                         <td>
                           <select value={item.Status||'ACTIVE'} onChange={e=>setField(item,'Status',e.target.value)} disabled={!perms.status}>
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="ARCHIVED">ARCHIVED</option>
                           </select>
                           {tracked && <div className="small">Tracked item. Quantity and cost are read only in Xero.</div>}
+                          {!isSold && <div className="small" style={{color:'#888'}}>⚠️ Not marked for sale</div>}
+                          {!isPurchased && <div className="small" style={{color:'#888'}}>⚠️ Not marked for purchase</div>}
                         </td>
                       </tr>
                     )
