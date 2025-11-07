@@ -106,7 +106,7 @@ export default function App() {
 
   async function loadItems() {
     if (!connected) return
-    setLoading(true); setItems([]); setNote(''); pageCache.current = {}
+    setLoading(true); setItems([]); setNote(''); setChanged({}); pageCache.current = {}
     setPage(1) // Reset to page 1 when loading new items
     try {
       const count = await fetchPage(1)
