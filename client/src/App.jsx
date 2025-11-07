@@ -153,6 +153,24 @@ export default function App() {
     setChanged(prev => ({ ...prev, [item.ItemID]: setDeep(prev[item.ItemID]||{}, path, value) }))
   }
 
+  function handleCheckboxChange(item, field, fieldType) {
+    const currentValue = item[field] !== false // Default to true if not specified
+
+    if (currentValue) {
+      // Unchecking - show confirmation
+      const message = fieldType === 'sell'
+        ? '⚠️ Unchecking "Sell" will permanently clear sale price, sales account, and sales tax when you save. Continue?'
+        : '⚠️ Unchecking "Purchase" will permanently clear cost price, purchase account, and purchase tax when you save. Continue?'
+
+      if (window.confirm(message)) {
+        setField(item, field, false)
+      }
+    } else {
+      // Checking - just enable it
+      setField(item, field, true)
+    }
+  }
+
   async function saveChanges() {
     const updates = items.filter(it => changed[it.ItemID]).map(it => ({ ItemID: it.ItemID, Code: it.Code, ...normaliseChanges(changed[it.ItemID]) }))
     if (updates.length === 0) { setMessage('No changes to save.'); return }
@@ -180,8 +198,8 @@ export default function App() {
   // Column widths
   const defaults = {
     code: 220, name: 260, desc: 420,
-    sale: 110, saleAcct: 160, saleTax: 150,
-    cost: 110, purAcct: 160, purTax: 150, status: 120
+    sell: 60, sale: 110, saleAcct: 160, saleTax: 150,
+    purchase: 80, cost: 110, purAcct: 160, purTax: 150, status: 120
   }
   const [colW, setColW] = useState(() => {
     try { return { ...defaults, ...(JSON.parse(localStorage.getItem('prodit-colw')||'{}')) } } catch { return defaults }
@@ -390,9 +408,11 @@ export default function App() {
                   <col style={{ width: colW.code }}/>
                   <col style={{ width: colW.name }}/>
                   <col style={{ width: colW.desc }}/>
+                  <col style={{ width: colW.sell }}/>
                   <col style={{ width: colW.sale }}/>
                   <col style={{ width: colW.saleAcct }}/>
                   <col style={{ width: colW.saleTax }}/>
+                  <col style={{ width: colW.purchase }}/>
                   <col style={{ width: colW.cost }}/>
                   <col style={{ width: colW.purAcct }}/>
                   <col style={{ width: colW.purTax }}/>
@@ -403,9 +423,11 @@ export default function App() {
                     <ResizableTH id="code" title="Code" />
                     <ResizableTH id="name" title="Name" />
                     <ResizableTH id="desc" title="Description" />
+                    <ResizableTH id="sell" title="Sell" />
                     <ResizableTH id="sale" title="Sale price" />
                     <ResizableTH id="saleAcct" title="Sales account" />
                     <ResizableTH id="saleTax" title="Sales tax" />
+                    <ResizableTH id="purchase" title="Purchase" />
                     <ResizableTH id="cost" title="Cost price" />
                     <ResizableTH id="purAcct" title="Purchase account" />
                     <ResizableTH id="purTax" title="Purchase tax" />
@@ -413,7 +435,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {note && items.length===0 && (<tr><td colSpan="10"><div className="small">{note}</div></td></tr>)}
+                  {note && items.length===0 && (<tr><td colSpan="12"><div className="small">{note}</div></td></tr>)}
                   {items.map(item => {
                     const salePrice = item?.SalesDetails?.UnitPrice ?? ''
                     const costPrice = item?.PurchaseDetails?.UnitPrice ?? ''
@@ -432,9 +454,11 @@ export default function App() {
                         <td><input type="text" value={item.Code||''} onChange={e=>setField(item,'Code',e.target.value)} disabled={!perms.code} /></td>
                         <td><input type="text" value={item.Name||''} onChange={e=>setField(item,'Name',e.target.value)} disabled={!perms.name} /></td>
                         <td><input type="text" value={item.Description||''} onChange={e=>setField(item,'Description',e.target.value)} disabled={!perms.description} /></td>
+                        <td style={{textAlign:'center'}}><input type="checkbox" checked={isSold} onChange={()=>handleCheckboxChange(item,'IsSold','sell')} title="Mark this item for sale" /></td>
                         <td><input type="number" step="0.01" value={salePrice} onChange={e=>setNested(item,'SalesDetails.UnitPrice',e.target.value)} disabled={!perms.salePrice || !isSold} title={!isSold ? 'This item is not marked for sale' : ''} /></td>
                         <td><AccountSelect item={item} path="SalesDetails.AccountCode" value={item.SalesDetails?.AccountCode||''} disabled={!perms.salesAccount || !isSold} title={!isSold ? 'This item is not marked for sale' : ''} /></td>
                         <td><TaxSelect item={item} path="SalesDetails.TaxType" value={item.SalesDetails?.TaxType||''} disabled={!perms.salesTax || !isSold} title={!isSold ? 'This item is not marked for sale' : ''} /></td>
+                        <td style={{textAlign:'center'}}><input type="checkbox" checked={isPurchased} onChange={()=>handleCheckboxChange(item,'IsPurchased','purchase')} title="Mark this item for purchase" /></td>
                         <td><input type="number" step="0.01" value={costPrice} onChange={e=>setNested(item,'PurchaseDetails.UnitPrice',e.target.value)} disabled={!perms.costPrice || !isPurchased} title={!isPurchased ? 'This item is not marked for purchase' : ''} /></td>
                         <td><AccountSelect item={item} path="PurchaseDetails.AccountCode" value={item.PurchaseDetails?.AccountCode||''} disabled={!perms.purchaseAccount || !isPurchased} title={!isPurchased ? 'This item is not marked for purchase' : ''} /></td>
                         <td><TaxSelect item={item} path="PurchaseDetails.TaxType" value={item.PurchaseDetails?.TaxType||''} disabled={!perms.purchaseTax || !isPurchased} title={!isPurchased ? 'This item is not marked for purchase' : ''} /></td>
@@ -450,11 +474,11 @@ export default function App() {
                       </tr>
                     )
                   })}
-                  {items.length===0 && !note && (<tr><td colSpan="10"><div className="small">No items. Try another search or page.</div></td></tr>)}
+                  {items.length===0 && !note && (<tr><td colSpan="12"><div className="small">No items. Try another search or page.</div></td></tr>)}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan="10">
+                    <td colSpan="12">
                       <div className="table-footer">
                         <button className="save-btn" onClick={saveChanges} disabled={loading || changedCount===0}>
                           Save changes {changedCount>0 ? `(${changedCount})` : ''}
