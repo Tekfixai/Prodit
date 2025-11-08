@@ -365,7 +365,11 @@ export default function App() {
             </label>
 
             {!connected ? (
-              <a href="/auth/xero" className="btn-link">Connect Xero</a>
+              user.isAdmin ? (
+                <a href="/auth/xero" className="btn-link">Connect Xero</a>
+              ) : (
+                <span className="status">Xero not connected</span>
+              )
             ) : (
               <span className="status">Connected: {tenantName}</span>
             )}
@@ -386,8 +390,17 @@ export default function App() {
         {!connected ? (
           <div className="welcome-box">
             <h2>Welcome to Prodit!</h2>
-            <p>To get started, connect your Xero organization.</p>
-            <a href="/auth/xero" className="btn-primary">Connect Xero Account</a>
+            {user.isAdmin ? (
+              <>
+                <p>To get started, connect your Xero organization.</p>
+                <a href="/auth/xero" className="btn-primary">Connect Xero Account</a>
+              </>
+            ) : (
+              <>
+                <p>Xero is not connected.</p>
+                <p>Please contact your administrator to connect your organization's Xero account.</p>
+              </>
+            )}
           </div>
         ) : (
           <>

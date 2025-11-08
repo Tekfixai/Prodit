@@ -1,14 +1,58 @@
 # Prodit Status Report
 
-**Last Updated:** 2025-11-06
-**Version:** v3.0 SaaS
-**Status:** Permission Loading Fix Complete ✅
+**Last Updated:** 2025-11-08
+**Version:** v3.1 SaaS
+**Status:** Admin-Only Xero Connection ✅
 
 ---
 
 ## Recent Updates
 
-### Permission Loading Race Condition Fix (2025-11-06 - Latest)
+### Restrict Xero Connection to Admin Users Only (2025-11-08 - Latest)
+
+Fixed user access control to prevent non-admin users from attempting to connect Xero.
+
+#### Problem Identified
+
+- **Issue:** Regular (non-admin) users could see and click "Connect Xero" buttons
+- **Root Cause:** No role-based conditional rendering for Xero connection UI elements
+- **User Impact:** Non-admin users were shown Xero connection options they shouldn't have access to
+
+#### Solution Implemented
+
+Modified Xero connection UI in `client/src/App.jsx`:
+
+**Changes:**
+1. **Header Section** - Only admins see "Connect Xero" link; regular users see "Xero not connected" status text
+2. **Welcome Box** - Admins see connection button; regular users see message to contact administrator
+
+**Admin users (when Xero not connected):**
+```jsx
+<a href="/auth/xero" className="btn-link">Connect Xero</a>
+<p>To get started, connect your Xero organization.</p>
+<a href="/auth/xero" className="btn-primary">Connect Xero Account</a>
+```
+
+**Regular users (when Xero not connected):**
+```jsx
+<span className="status">Xero not connected</span>
+<p>Xero is not connected.</p>
+<p>Please contact your administrator to connect your organization's Xero account.</p>
+```
+
+#### Result
+
+- **Admin users:** Can connect Xero as before (no change to functionality)
+- **Regular users:** See clear message to contact admin; cannot attempt Xero connection
+- **Security:** Prevents unauthorized Xero connection attempts
+
+#### Files Modified
+
+- `client/src/App.jsx` - Added role-based conditional rendering for Xero connection UI
+
+---
+
+### Permission Loading Race Condition Fix (2025-11-06)
 
 Fixed a critical bug where field permissions weren't enforced on first login, only after page refresh.
 
